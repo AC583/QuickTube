@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Video not found" }, { status: 404 });
     }
 
-    const response = await chatWithTranscript(video.transcript, message, history);
+    const response = await chatWithTranscript(video.transcript ?? "", message, history);
 
     return NextResponse.json({ response });
   } catch (error: unknown) {

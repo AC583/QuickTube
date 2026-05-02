@@ -13,9 +13,11 @@ model Video {
   youtubeId    String
   title        String
   thumbnailUrl String?
-  transcript   String
-  summary      String
-  highlights   String
+  transcript   String?
+  summary      String?
+  highlights   String?
+  status       String   @default("COMPLETED")
+  errorMessage String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

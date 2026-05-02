@@ -1,4 +1,5 @@
 import { DeepgramClient, type ListenV1Response } from "@deepgram/sdk";
+import { Readable } from "stream";
 import { KeyPool } from "./key-pool";
 
 // Set DEEPGRAM_API_KEYS="key1,key2,key3" in .env (falls back to single key)
@@ -6,16 +7,16 @@ const deepgramPool = KeyPool.fromEnv(
   process.env.DEEPGRAM_API_KEYS ? "DEEPGRAM_API_KEYS" : "DEEPGRAM_API_KEY"
 );
 
-export async function transcribeAudio(audioBuffer: Buffer) {
+export async function transcribeAudio(audioStream: Readable) {
   try {
     const response = await deepgramPool.run((key) => {
-      const client = new DeepgramClient({ apiKey: key });
-      return client.listen.v1.media.transcribeFile(audioBuffer, {
+      const client = new DeepgramClient({ apiKey: key, timeoutInSeconds: 300 });
+      return client.listen.v1.media.transcribeFile(audioStream as any, {
         smart_format: true,
         model: "nova-2",
         utterances: true,
         paragraphs: true,
-      });
+      }, { timeoutInSeconds: 300 });
     });
 
     if (!response || !("results" in response)) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Video, ArrowRight, Loader2 } from "lucide-react";
+import { Video, ArrowRight, Loader2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
@@ -38,22 +38,22 @@ export function VideoInput() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
-      <div className="relative group">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-white transition-colors">
-          <Video className="w-6 h-6" />
+      <div className="relative flex items-center bg-zinc-900 rounded-2xl border-2 border-zinc-800 focus-within:border-[#0D9488] transition-colors duration-200">
+        <div className="pl-5 text-zinc-500">
+          <Video className="w-5 h-5" />
         </div>
         <input
           type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Paste YouTube video link here..."
-          className="w-full bg-zinc-900/50 border border-white/10 rounded-2xl py-4 pl-14 pr-32 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all text-lg placeholder:text-zinc-600"
+          className="flex-1 bg-transparent py-4 px-4 focus:outline-none text-white placeholder:text-zinc-600 text-base"
           disabled={loading}
         />
         <button
           type="submit"
           disabled={loading || !url}
-          className="absolute right-2 top-2 bottom-2 bg-white text-black px-6 rounded-xl font-semibold flex items-center gap-2 hover:bg-zinc-200 disabled:opacity-50 disabled:hover:bg-white transition-all"
+          className="mr-2 bg-[#0D9488] hover:bg-[#14B8A6] text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 disabled:opacity-50 disabled:hover:bg-[#0D9488] transition-colors duration-200 cursor-pointer"
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -64,9 +64,10 @@ export function VideoInput() {
           )}
         </button>
       </div>
-      <p className="text-zinc-500 text-sm mt-4 text-center">
-        Powered by Deepgram & NVIDIA NIM
-      </p>
+      <div className="flex items-center justify-center gap-2 mt-4 text-zinc-500 text-sm">
+        <Zap className="w-4 h-4 text-[#F97316]" />
+        <span>Powered by Deepgram & NVIDIA NIM</span>
+      </div>
     </form>
   );
 }
