@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAudioStream, getVideoMetadata } from "@/lib/youtube";
+import { waitUntil } from "@vercel/functions";
+import { getCaptionTranscript, getAudioStream, getVideoMetadata } from "@/lib/youtube";
 import { transcribeAudio } from "@/lib/deepgram";
 import { summarizeTranscript } from "@/lib/nvidia";
 import { prisma } from "@/lib/prisma";
+
+export const maxDuration = 60;
 
 async function processVideo(videoId: string, url: string) {
   try {
@@ -11,8 +14,11 @@ async function processVideo(videoId: string, url: string) {
       data: { status: "PROCESSING" },
     });
 
-    const audioStream = await getAudioStream(url);
-    const { transcript } = await transcribeAudio(audioStream);
+    let transcript = await getCaptionTranscript(url);
+    if (!transcript) {
+      const audioStream = await getAudioStream(url);
+      ({ transcript } = await transcribeAudio(audioStream));
+    }
     const { summary, highlights } = await summarizeTranscript(transcript);
 
     await prisma.video.update({
@@ -70,8 +76,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Fire background job without awaiting — works in persistent Node.js (dev/self-hosted)
-    processVideo(video.id, url).catch(console.error);
+    waitUntil(processVideo(video.id, url));
 
     return NextResponse.json({ videoId: video.id, cached: false });
   } catch (error: unknown) {

@@ -1,5 +1,6 @@
 import axios from "axios";
-import { spawn } from "child_process";
+import ytdl from "@distube/ytdl-core";
+import { YoutubeTranscript } from "youtube-transcript";
 import { Readable } from "stream";
 
 export async function getVideoMetadata(url: string) {
@@ -17,28 +18,23 @@ export async function getVideoMetadata(url: string) {
   }
 }
 
+// Returns the full transcript text from YouTube's own captions, or null if unavailable.
+export async function getCaptionTranscript(url: string): Promise<string | null> {
+  try {
+    const idMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = idMatch?.[1];
+    if (!videoId) return null;
+
+    const entries = await YoutubeTranscript.fetchTranscript(videoId);
+    if (!entries || entries.length === 0) return null;
+
+    return entries.map((e) => e.text).join(" ");
+  } catch {
+    return null;
+  }
+}
+
+// Returns an audio stream (webm/opus or mp4/aac) via ytdl-core — no native binaries required.
 export async function getAudioStream(url: string): Promise<Readable> {
-  const ytDlpPath = "/Library/Frameworks/Python.framework/Versions/3.14/bin/yt-dlp";
-  const ytDlp = spawn(ytDlpPath, [
-    "--no-playlist",
-    "--no-check-certificate",
-    "-f", "bestaudio",
-    "-o", "-",
-    url,
-  ]);
-
-  const ffmpeg = spawn("/opt/homebrew/bin/ffmpeg", [
-    "-i", "pipe:0",
-    "-vn",
-    "-ar", "16000",
-    "-ac", "1",
-    "-f", "mp3",
-    "pipe:1",
-  ]);
-
-  ytDlp.stderr.on("data", (data) => console.error("[yt-dlp]", data.toString()));
-  ffmpeg.stderr.on("data", (data) => console.error("[ffmpeg]", data.toString()));
-  ytDlp.stdout.pipe(ffmpeg.stdin);
-
-  return ffmpeg.stdout as unknown as Readable;
+  return ytdl(url, { filter: "audioonly", quality: "highestaudio" }) as unknown as Readable;
 }
