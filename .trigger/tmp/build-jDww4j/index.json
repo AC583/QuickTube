@@ -1,0 +1,23 @@
+{
+  "configPath": "/Users/adrianhuang/Documents/youtube_summarizer/.trigger/tmp/build-jDww4j/Documents/youtube_summarizer/trigger.config.mjs",
+  "customConditions": [
+  ],
+  "prompts": [
+  ],
+  "queues": [
+  ],
+  "runtime": "node",
+  "runtimeVersion": "24.15.0",
+  "tasks": [
+    {
+      "entryPoint": "/Users/adrianhuang/Documents/youtube_summarizer/.trigger/tmp/build-jDww4j/Documents/youtube_summarizer/trigger/process-video.mjs",
+      "filePath": "trigger/process-video.ts",
+      "id": "process-video",
+      "maxDuration": 300
+    }
+  ],
+  "timings": {
+    "trigger/process-video.ts": 45.99154200000001
+  },
+  "workerEntryPoint": "/Users/adrianhuang/Documents/youtube_summarizer/.trigger/tmp/build-jDww4j/.npm/_npx/f51a09bd0abf5f10/node_modules/trigger.dev/dist/esm/entryPoints/dev-run-worker.mjs"
+}

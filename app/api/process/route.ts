@@ -1,44 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { waitUntil } from "@vercel/functions";
-import { getCaptionTranscript, getAudioStream, getVideoMetadata } from "@/lib/youtube";
-import { transcribeAudio } from "@/lib/deepgram";
-import { summarizeTranscript } from "@/lib/nvidia";
+import { tasks } from "@trigger.dev/sdk/v3";
+import { getVideoMetadata } from "@/lib/youtube";
 import { prisma } from "@/lib/prisma";
+import type { processVideoTask } from "@/trigger/process-video";
 
-export const maxDuration = 60;
-
-async function processVideo(videoId: string, url: string) {
-  try {
-    await prisma.video.update({
-      where: { id: videoId },
-      data: { status: "PROCESSING" },
-    });
-
-    let transcript = await getCaptionTranscript(url);
-    if (!transcript) {
-      const audioStream = await getAudioStream(url);
-      ({ transcript } = await transcribeAudio(audioStream));
-    }
-    const { summary, highlights } = await summarizeTranscript(transcript);
-
-    await prisma.video.update({
-      where: { id: videoId },
-      data: {
-        transcript,
-        summary,
-        highlights: JSON.stringify(highlights),
-        status: "COMPLETED",
-      },
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to process video";
-    console.error("Background processing error:", errorMessage);
-    await prisma.video.update({
-      where: { id: videoId },
-      data: { status: "FAILED", errorMessage },
-    });
-  }
-}
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +16,6 @@ export async function POST(req: NextRequest) {
 
     const metadata = await getVideoMetadata(url);
 
-    // Return existing completed video immediately
     const existingVideo = await prisma.video.findFirst({
       where: { youtubeId: metadata.youtubeId, status: "COMPLETED" },
     });
@@ -58,7 +23,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ videoId: existingVideo.id, cached: true });
     }
 
-    // Return in-progress video if already queued and not stale
     const staleThreshold = new Date(Date.now() - 8 * 60 * 1000);
     const inProgressVideo = await prisma.video.findFirst({
       where: {
@@ -81,12 +45,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    waitUntil(processVideo(video.id, url));
+    await tasks.trigger<typeof processVideoTask>("process-video", {
+      videoId: video.id,
+      url,
+    });
 
     return NextResponse.json({ videoId: video.id, cached: false });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to process video";
-    console.error("Processing error:", errorMessage);
+    console.error("Processing error:", error);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

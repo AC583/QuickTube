@@ -3,13 +3,15 @@ import { Readable } from "stream";
 import { KeyPool } from "./key-pool";
 
 // Set DEEPGRAM_API_KEYS="key1,key2,key3" in .env (falls back to single key)
-const deepgramPool = KeyPool.fromEnv(
-  process.env.DEEPGRAM_API_KEYS ? "DEEPGRAM_API_KEYS" : "DEEPGRAM_API_KEY"
-);
+function getDeepgramPool() {
+  return KeyPool.fromEnv(
+    process.env.DEEPGRAM_API_KEYS ? "DEEPGRAM_API_KEYS" : "DEEPGRAM_API_KEY"
+  );
+}
 
 export async function transcribeAudio(audioStream: Readable) {
   try {
-    const response = await deepgramPool.run((key) => {
+    const response = await getDeepgramPool().run((key) => {
       const client = new DeepgramClient({ apiKey: key, timeoutInSeconds: 300 });
       return client.listen.v1.media.transcribeFile(audioStream as any, {
         smart_format: true,

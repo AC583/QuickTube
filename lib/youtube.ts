@@ -18,23 +18,43 @@ export async function getVideoMetadata(url: string) {
   }
 }
 
-// Returns the full transcript text from YouTube's own captions, or null if unavailable.
+// Returns the full transcript text from YouTube's own captions, or null if the video
+// has no captions. Throws on network errors so callers don't silently fall through
+// to the audio path when YouTube is unreachable.
 export async function getCaptionTranscript(url: string): Promise<string | null> {
-  try {
-    const idMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = idMatch?.[1];
-    if (!videoId) return null;
+  const idMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/);
+  const videoId = idMatch?.[1];
+  if (!videoId) return null;
 
+  try {
     const entries = await YoutubeTranscript.fetchTranscript(videoId);
     if (!entries || entries.length === 0) return null;
-
     return entries.map((e) => e.text).join(" ");
-  } catch {
-    return null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // "no captions" / "disabled" → return null so caller can fall back to audio
+    if (/transcript|caption|disabled|unavailable/i.test(msg)) {
+      console.warn(`No captions available for ${videoId}: ${msg}`);
+      return null;
+    }
+    // Network-level failure → re-throw; the audio path will fail for the same reason
+    console.error(`Caption fetch network error for ${videoId}:`, err);
+    throw err;
   }
 }
 
-// Returns an audio stream (webm/opus or mp4/aac) via ytdl-core — no native binaries required.
+// Returns an audio stream (webm/opus or mp4/aac) via ytdl-core.
+// Note: YouTube actively blocks server IPs; this path only works when
+// getCaptionTranscript returns null due to missing captions (not network errors).
 export async function getAudioStream(url: string): Promise<Readable> {
-  return ytdl(url, { filter: "audioonly", quality: "highestaudio" }) as unknown as Readable;
+  return ytdl(url, {
+    filter: "audioonly",
+    quality: "highestaudio",
+    requestOptions: {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    },
+  }) as unknown as Readable;
 }

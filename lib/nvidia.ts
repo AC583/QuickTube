@@ -3,9 +3,11 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import { KeyPool } from "./key-pool";
 
 // Set NVIDIA_API_KEYS="key1,key2,key3" in .env (falls back to single key)
-const nvidiaPool = KeyPool.fromEnv(
-  process.env.NVIDIA_API_KEYS ? "NVIDIA_API_KEYS" : "NVIDIA_API_KEY"
-);
+function getNvidiaPool() {
+  return KeyPool.fromEnv(
+    process.env.NVIDIA_API_KEYS ? "NVIDIA_API_KEYS" : "NVIDIA_API_KEY"
+  );
+}
 
 function nvidiaClient(key: string) {
   return new OpenAI({ apiKey: key, baseURL: "https://integrate.api.nvidia.com/v1" });
@@ -52,7 +54,7 @@ export async function summarizeTranscript(transcript: string) {
     IMPORTANT: Base everything strictly on the transcript. Do not hallucinate.
   `;
 
-  const response = await nvidiaPool.run((key) =>
+  const response = await getNvidiaPool().run((key) =>
     nvidiaClient(key).chat.completions.create({
       model: "meta/llama-3.1-405b-instruct",
       messages: [{ role: "user", content: prompt }],
@@ -94,7 +96,7 @@ export async function chatWithTranscript(
     """
   `;
 
-  const response = await nvidiaPool.run((key) =>
+  const response = await getNvidiaPool().run((key) =>
     nvidiaClient(key).chat.completions.create({
       model: "meta/llama-3.1-70b-instruct",
       messages: [
@@ -164,7 +166,7 @@ IMPORTANT: For true_false questions, use correctAnswer: 0 for True, correctAnswe
 Generate only the JSON array, no additional text or markdown.
 `;
 
-  const response = await nvidiaPool.run((key) =>
+  const response = await getNvidiaPool().run((key) =>
     nvidiaClient(key).chat.completions.create({
       model: "meta/llama-3.1-405b-instruct",
       messages: [{ role: "user", content: prompt }],
