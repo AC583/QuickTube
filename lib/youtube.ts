@@ -24,7 +24,7 @@ export async function getCaptionTranscript(url: string): Promise<string | null> 
   if (!videoId) return null;
 
   try {
-    const yt = await Innertube.create({ retrieve_player: false });
+    const yt = await Innertube.create();
     const info = await yt.getInfo(videoId);
     const transcriptData = await info.getTranscript();
 

@@ -47750,7 +47750,7 @@ async function getCaptionTranscript(url) {
   const videoId = idMatch?.[1];
   if (!videoId) return null;
   try {
-    const yt = await Innertube.create({ retrieve_player: false });
+    const yt = await Innertube.create();
     const info2 = await yt.getInfo(videoId);
     const transcriptData = await info2.getTranscript();
     if (!transcriptData) {
