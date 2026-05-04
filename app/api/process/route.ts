@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ videoId: existingVideo.id, cached: true });
     }
 
-    const staleThreshold = new Date(Date.now() - 8 * 60 * 1000);
+    const staleThreshold = new Date(Date.now() - 2 * 60 * 1000);
     const inProgressVideo = await prisma.video.findFirst({
       where: {
         youtubeId: metadata.youtubeId,

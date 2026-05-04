@@ -30476,8 +30476,19 @@ var processVideoTask = task({
       where: { id: videoId },
       data: { status: "PROCESSING" }
     });
-    logger.log("Fetching captions", { videoId });
-    const transcript = await getCaptionTranscript(url2);
+    let transcript;
+    try {
+      logger.log("Fetching captions", { videoId });
+      transcript = await getCaptionTranscript(url2);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch captions";
+      logger.error("Caption fetch error", { error: errorMessage });
+      await prisma.video.update({
+        where: { id: videoId },
+        data: { status: "FAILED", errorMessage }
+      });
+      throw error;
+    }
     if (!transcript) {
       const errorMessage = "This video has captions disabled. Only videos with captions or auto-generated subtitles can be processed.";
       logger.warn("No captions available", { videoId });
