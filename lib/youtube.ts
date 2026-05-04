@@ -1,5 +1,5 @@
 import axios from "axios";
-import ytdl from "@distube/ytdl-core";
+import { Innertube } from "youtubei.js";
 
 export async function getVideoMetadata(url: string) {
   try {
@@ -16,36 +16,41 @@ export async function getVideoMetadata(url: string) {
   }
 }
 
-// Fetches captions via ytdl.getInfo (YouTube's InnerTube player API), which is
-// more reliable on server IPs than page-scraping libraries like youtube-transcript.
+// Uses YouTube's InnerTube API (via youtubei.js) which properly emulates a real
+// YouTube client and is far less susceptible to server-IP blocking than page scrapers.
 export async function getCaptionTranscript(url: string): Promise<string | null> {
+  const idMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/);
+  const videoId = idMatch?.[1];
+  if (!videoId) return null;
+
   try {
-    const info = await ytdl.getInfo(url);
-    const tracks =
-      info.player_response?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    const yt = await Innertube.create({ retrieve_player: false });
+    const info = await yt.getInfo(videoId);
+    const transcriptData = await info.getTranscript();
 
-    if (!tracks?.length) return null;
+    if (!transcriptData) {
+      console.warn(`No transcript data returned for ${videoId}`);
+      return null;
+    }
 
-    // Prefer English, fall back to first available track
-    const track =
-      tracks.find((t) => t.languageCode?.startsWith("en")) ?? tracks[0];
+    const segments =
+      transcriptData.transcript?.content?.body?.initial_segments ?? [];
 
-    const captionUrl = `${track.baseUrl}&fmt=json3`;
-    const resp = await fetch(captionUrl);
-    if (!resp.ok) return null;
+    if (!segments.length) {
+      console.warn(`Empty transcript segments for ${videoId}`);
+      return null;
+    }
 
-    const data = await resp.json();
-    const text = ((data.events ?? []) as any[])
-      .filter((e) => e.segs)
-      .flatMap((e) => (e.segs as any[]).map((s) => s.utf8 ?? ""))
+    const text = segments
+      .map((s: any) => s.snippet?.text ?? "")
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
 
     return text || null;
   } catch (err) {
-    console.warn(
-      "Caption fetch failed:",
+    console.error(
+      `Caption fetch failed for ${videoId}:`,
       err instanceof Error ? err.message : err
     );
     return null;
