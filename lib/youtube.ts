@@ -1,7 +1,5 @@
 import axios from "axios";
 import ytdl from "@distube/ytdl-core";
-import { YoutubeTranscript } from "youtube-transcript";
-import { Readable } from "stream";
 
 export async function getVideoMetadata(url: string) {
   try {
@@ -18,37 +16,38 @@ export async function getVideoMetadata(url: string) {
   }
 }
 
-// Returns the full transcript text from YouTube's own captions, or null if the video
-// has no captions. Throws on network errors so callers don't silently fall through
-// to the audio path when YouTube is unreachable.
+// Fetches captions via ytdl.getInfo (YouTube's InnerTube player API), which is
+// more reliable on server IPs than page-scraping libraries like youtube-transcript.
 export async function getCaptionTranscript(url: string): Promise<string | null> {
-  const idMatch = url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/);
-  const videoId = idMatch?.[1];
-  if (!videoId) return null;
-
   try {
-    const entries = await YoutubeTranscript.fetchTranscript(videoId);
-    if (!entries || entries.length === 0) return null;
-    return entries.map((e) => e.text).join(" ");
+    const info = await ytdl.getInfo(url);
+    const tracks =
+      info.player_response?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+    if (!tracks?.length) return null;
+
+    // Prefer English, fall back to first available track
+    const track =
+      tracks.find((t) => t.languageCode?.startsWith("en")) ?? tracks[0];
+
+    const captionUrl = `${track.baseUrl}&fmt=json3`;
+    const resp = await fetch(captionUrl);
+    if (!resp.ok) return null;
+
+    const data = await resp.json();
+    const text = ((data.events ?? []) as any[])
+      .filter((e) => e.segs)
+      .flatMap((e) => (e.segs as any[]).map((s) => s.utf8 ?? ""))
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return text || null;
   } catch (err) {
-    // Any failure (no captions, network block, etc.) → fall through to audio path
-    console.warn(`Caption fetch failed for ${videoId}, falling back to audio:`, err instanceof Error ? err.message : err);
+    console.warn(
+      "Caption fetch failed:",
+      err instanceof Error ? err.message : err
+    );
     return null;
   }
-}
-
-// Returns an audio stream (webm/opus or mp4/aac) via ytdl-core.
-// Note: YouTube actively blocks server IPs; this path only works when
-// getCaptionTranscript returns null due to missing captions (not network errors).
-export async function getAudioStream(url: string): Promise<Readable> {
-  return ytdl(url, {
-    filter: "audioonly",
-    quality: "highestaudio",
-    requestOptions: {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-    },
-  }) as unknown as Readable;
 }
