@@ -1,6 +1,5 @@
 import { task, logger } from "@trigger.dev/sdk/v3";
-import { getCaptionTranscript, getAudioStream } from "@/lib/youtube";
-import { transcribeAudio } from "@/lib/deepgram";
+import { getCaptionTranscript } from "@/lib/youtube";
 import { summarizeTranscript } from "@/lib/nvidia";
 import { prisma } from "@/lib/prisma";
 
@@ -15,30 +14,20 @@ export const processVideoTask = task({
       data: { status: "PROCESSING" },
     });
 
-    let transcript: string;
+    logger.log("Fetching captions", { videoId });
+    const transcript = await getCaptionTranscript(url);
 
-    try {
-      logger.log("Fetching captions", { videoId });
-      const captionTranscript = await getCaptionTranscript(url);
-
-      if (captionTranscript) {
-        logger.log("Captions found", { chars: captionTranscript.length });
-        transcript = captionTranscript;
-      } else {
-        logger.log("No captions, falling back to audio transcription");
-        const audioStream = await getAudioStream(url);
-        ({ transcript } = await transcribeAudio(audioStream));
-        logger.log("Audio transcribed", { chars: transcript.length });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to fetch transcript";
-      logger.error("Transcript error", { error: errorMessage });
+    if (!transcript) {
+      const errorMessage = "This video has captions disabled. Only videos with captions or auto-generated subtitles can be processed.";
+      logger.warn("No captions available", { videoId });
       await prisma.video.update({
         where: { id: videoId },
         data: { status: "FAILED", errorMessage },
       });
-      throw error;
+      return;
     }
+
+    logger.log("Captions fetched", { chars: transcript.length });
 
     try {
       logger.log("Summarizing transcript");
