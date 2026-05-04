@@ -19,17 +19,26 @@ export async function getVideoMetadata(url: string) {
 
 export async function getAudioStream(url: string): Promise<Readable> {
   const ytDlpPath = "/Library/Frameworks/Python.framework/Versions/3.14/bin/yt-dlp";
-  const proc = spawn(ytDlpPath, [
+  const ytDlp = spawn(ytDlpPath, [
     "--no-playlist",
     "--no-check-certificate",
-    "-f", "bestaudio[ext=webm]/bestaudio/best",
+    "-f", "bestaudio",
     "-o", "-",
     url,
   ]);
 
-  proc.stderr.on("data", (data) => {
-    console.error("[yt-dlp]", data.toString());
-  });
+  const ffmpeg = spawn("/opt/homebrew/bin/ffmpeg", [
+    "-i", "pipe:0",
+    "-vn",
+    "-ar", "16000",
+    "-ac", "1",
+    "-f", "mp3",
+    "pipe:1",
+  ]);
 
-  return proc.stdout as unknown as Readable;
+  ytDlp.stderr.on("data", (data) => console.error("[yt-dlp]", data.toString()));
+  ffmpeg.stderr.on("data", (data) => console.error("[ffmpeg]", data.toString()));
+  ytDlp.stdout.pipe(ffmpeg.stdin);
+
+  return ffmpeg.stdout as unknown as Readable;
 }
