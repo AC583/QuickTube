@@ -58,9 +58,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ videoId: existingVideo.id, cached: true });
     }
 
-    // Return in-progress video if already queued
+    // Return in-progress video if already queued and not stale
+    const staleThreshold = new Date(Date.now() - 8 * 60 * 1000);
     const inProgressVideo = await prisma.video.findFirst({
-      where: { youtubeId: metadata.youtubeId, status: { in: ["PENDING", "PROCESSING"] } },
+      where: {
+        youtubeId: metadata.youtubeId,
+        status: { in: ["PENDING", "PROCESSING"] },
+        updatedAt: { gte: staleThreshold },
+      },
     });
     if (inProgressVideo) {
       return NextResponse.json({ videoId: inProgressVideo.id, cached: true });
