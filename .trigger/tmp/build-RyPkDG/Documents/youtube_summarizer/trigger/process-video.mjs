@@ -45284,6 +45284,10 @@ var require_client2 = __commonJS({
             "fromEnvVar": null,
             "value": "darwin-arm64",
             "native": true
+          },
+          {
+            "fromEnvVar": null,
+            "value": "debian-openssl-3.0.x"
           }
         ],
         "previewFeatures": [],
@@ -45300,6 +45304,7 @@ var require_client2 = __commonJS({
         "db"
       ],
       "activeProvider": "postgresql",
+      "postinstall": false,
       "inlineDatasources": {
         "db": {
           "url": {
@@ -45308,8 +45313,8 @@ var require_client2 = __commonJS({
           }
         }
       },
-      "inlineSchema": 'generator client {\n  provider = "prisma-client-js"\n}\n\ndatasource db {\n  provider  = "postgresql"\n  url       = env("DATABASE_URL")\n  directUrl = env("DIRECT_URL")\n}\n\nmodel Video {\n  id           String   @id @default(cuid())\n  youtubeUrl   String\n  youtubeId    String\n  title        String\n  thumbnailUrl String?\n  transcript   String?\n  summary      String?\n  highlights   String?\n  status       String   @default("COMPLETED")\n  errorMessage String?\n  createdAt    DateTime @default(now())\n  updatedAt    DateTime @updatedAt\n\n  @@index([youtubeId])\n}\n',
-      "inlineSchemaHash": "272764432325779872ed379cc223e1b2b256ad883fee8fd7ec592adc7eaa5abc",
+      "inlineSchema": 'generator client {\n  provider      = "prisma-client-js"\n  binaryTargets = ["native", "debian-openssl-3.0.x"]\n}\n\ndatasource db {\n  provider  = "postgresql"\n  url       = env("DATABASE_URL")\n  directUrl = env("DIRECT_URL")\n}\n\nmodel Video {\n  id           String   @id @default(cuid())\n  youtubeUrl   String\n  youtubeId    String\n  title        String\n  thumbnailUrl String?\n  transcript   String?\n  summary      String?\n  highlights   String?\n  status       String   @default("COMPLETED")\n  errorMessage String?\n  createdAt    DateTime @default(now())\n  updatedAt    DateTime @updatedAt\n\n  @@index([youtubeId])\n}\n',
+      "inlineSchemaHash": "e7561c059f470bdbf70728cf975d083e2fc9c84b1241e7e13a9eae52b6d6cbf6",
       "copyEngine": true
     };
     var fs = __require("fs");
@@ -45339,6 +45344,8 @@ var require_client2 = __commonJS({
     Object.assign(exports, Prisma);
     path2.join(__dirname, "libquery_engine-darwin-arm64.dylib.node");
     path2.join(process.cwd(), "node_modules/.prisma/client/libquery_engine-darwin-arm64.dylib.node");
+    path2.join(__dirname, "libquery_engine-debian-openssl-3.0.x.so.node");
+    path2.join(process.cwd(), "node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node");
     path2.join(__dirname, "schema.prisma");
     path2.join(process.cwd(), "node_modules/.prisma/client/schema.prisma");
   }
@@ -45634,13 +45641,8 @@ async function getCaptionTranscript(url) {
     if (!entries || entries.length === 0) return null;
     return entries.map((e) => e.text).join(" ");
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (/transcript|caption|disabled|unavailable/i.test(msg)) {
-      console.warn(`No captions available for ${videoId}: ${msg}`);
-      return null;
-    }
-    console.error(`Caption fetch network error for ${videoId}:`, err);
-    throw err;
+    console.warn(`Caption fetch failed for ${videoId}, falling back to audio:`, err instanceof Error ? err.message : err);
+    return null;
   }
 }
 __name(getCaptionTranscript, "getCaptionTranscript");

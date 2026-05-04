@@ -31,15 +31,9 @@ export async function getCaptionTranscript(url: string): Promise<string | null> 
     if (!entries || entries.length === 0) return null;
     return entries.map((e) => e.text).join(" ");
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    // "no captions" / "disabled" → return null so caller can fall back to audio
-    if (/transcript|caption|disabled|unavailable/i.test(msg)) {
-      console.warn(`No captions available for ${videoId}: ${msg}`);
-      return null;
-    }
-    // Network-level failure → re-throw; the audio path will fail for the same reason
-    console.error(`Caption fetch network error for ${videoId}:`, err);
-    throw err;
+    // Any failure (no captions, network block, etc.) → fall through to audio path
+    console.warn(`Caption fetch failed for ${videoId}, falling back to audio:`, err instanceof Error ? err.message : err);
+    return null;
   }
 }
 

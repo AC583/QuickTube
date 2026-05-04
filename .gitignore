@@ -56,3 +56,5 @@ prisma/*.db
 AGENTS.md
 CLAUDE.md
 DESIGN.md
+
+.trigger/
