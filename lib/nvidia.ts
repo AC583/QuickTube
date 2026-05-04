@@ -108,3 +108,82 @@ export async function chatWithTranscript(
 
   return response.choices[0].message.content;
 }
+
+export interface QuizQuestion {
+  id: string;
+  type: "multiple_choice" | "true_false";
+  question: string;
+  options?: string[];
+  correctAnswer: number;
+  explanation: string;
+}
+
+export async function generateQuiz(transcript: string): Promise<QuizQuestion[]> {
+  const prompt = `
+You are an expert at creating educational quizzes. Your task is to generate quiz questions based on a video transcript.
+
+Transcript:
+"""
+${transcript}
+"""
+
+Generate 5-7 quiz questions that test understanding of the core concepts from the video. Include a mix of:
+- Multiple choice questions (4 options each)
+- True/False questions
+
+Important guidelines:
+1. Questions should test comprehension, NOT just recall
+2. Include questions that require understanding of relationships between concepts
+3. Focus on the most important/key concepts from the video
+4. Explanations should reference specific parts of the transcript when possible
+
+Output your response in the following EXACT JSON format:
+
+[QUIZ_JSON_START]
+[
+  {
+    "id": "q1",
+    "type": "multiple_choice",
+    "question": "Your question text here?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctAnswer": 0,
+    "explanation": "Explain why this answer is correct and reference the transcript if possible"
+  },
+  {
+    "id": "q2", 
+    "type": "true_false",
+    "question": "Your statement here?",
+    "correctAnswer": 0,
+    "explanation": "Explain why this is True (0) or False (1)"
+  }
+]
+[QUIZ_JSON_END]
+
+IMPORTANT: For true_false questions, use correctAnswer: 0 for True, correctAnswer: 1 for False.
+
+Generate only the JSON array, no additional text or markdown.
+`;
+
+  const response = await nvidiaPool.run((key) =>
+    nvidiaClient(key).chat.completions.create({
+      model: "meta/llama-3.1-405b-instruct",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+    })
+  );
+
+  const content = response.choices[0].message.content || "";
+  const jsonMatch = content.match(/\[QUIZ_JSON_START\]([\s\S]*?)\[QUIZ_JSON_END\]/);
+
+  if (!jsonMatch) {
+    throw new Error("Failed to parse quiz JSON from response");
+  }
+
+  try {
+    const questions = JSON.parse(jsonMatch[1].trim());
+    return questions;
+  } catch (e) {
+    console.error("Failed to parse quiz JSON", e);
+    throw new Error("Invalid quiz JSON format");
+  }
+}

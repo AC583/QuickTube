@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { SummaryDisplay } from "@/components/SummaryDisplay";
 import { TimestampList } from "@/components/TimestampList";
 import { ChatPanel } from "@/components/ChatPanel";
+import { QuizPanel } from "@/components/QuizPanel";
 import { ExportButtons } from "@/components/ExportButtons";
 import { ProcessingStatus } from "@/components/ProcessingStatus";
 import { notFound } from "next/navigation";
@@ -83,6 +84,13 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
                 Chat with Video
               </h2>
               <ChatPanel videoId={video.id} />
+            </div>
+
+            <div className="glass rounded-3xl p-6 border border-white/10 h-fit max-h-[500px] flex flex-col">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                Quiz Your Knowledge
+              </h2>
+              <QuizPanel videoId={video.id} />
             </div>
           </div>
 
