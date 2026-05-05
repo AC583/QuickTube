@@ -11,7 +11,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Video Insight AI - YouTube Summarizer",
+  title: "QuickTube - YouTube Summarizer",
   description: "Extract transcripts, generate summaries, and chat with your YouTube videos using state-of-the-art AI.",
 };
 

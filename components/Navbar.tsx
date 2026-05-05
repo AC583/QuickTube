@@ -10,7 +10,7 @@ export function Navbar() {
         <div className="w-10 h-10 bg-[#0D9488] rounded-xl flex items-center justify-center">
           <Video className="text-white w-5 h-5" />
         </div>
-        <span className="font-bold text-xl tracking-tight text-white">Video Insight AI</span>
+        <span className="font-bold text-xl tracking-tight text-white">QuickTube</span>
       </Link>
       
       <div className="flex items-center gap-8 text-sm font-medium">

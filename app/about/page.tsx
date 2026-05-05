@@ -7,9 +7,9 @@ export default function AboutPage() {
       
       <div className="pt-32 px-6 pb-20">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8">About Video Insight AI</h1>
+          <h1 className="text-4xl font-bold mb-8">About QuickTube</h1>
           <p className="text-zinc-400 text-lg leading-relaxed mb-6">
-            Video Insight AI is a cutting-edge platform designed to help you consume video content more efficiently. 
+            QuickTube is a cutting-edge platform designed to help you consume video content more efficiently. 
             By leveraging state-of-the-art AI from Deepgram and NVIDIA, we provide high-fidelity transcriptions and 
             structured summaries of any YouTube video.
           </p>
