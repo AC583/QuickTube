@@ -13,6 +13,28 @@ function nvidiaClient(key: string) {
   return new OpenAI({ apiKey: key, baseURL: "https://integrate.api.nvidia.com/v1" });
 }
 
+async function withErrorLogging<T>(promise: Promise<T>, context: string): Promise<T> {
+  try {
+    return await promise;
+  } catch (err) {
+    const error = err as any;
+    const status = error?.status || error?.statusCode;
+    const message = error?.message || String(err);
+    const response = error?.response;
+    
+    console.error(`[NVIDIA API Error] ${context}`);
+    console.error(`  Status: ${status}`);
+    console.error(`  Message: ${message}`);
+    console.error(`  Response body: ${response?.data ? JSON.stringify(response.data) : 'N/A'}`);
+    
+    if (status === 404) {
+      console.error(`  ⚠️ 404 Error: Model may be unavailable. Check NVIDIA NIM catalog for available models.`);
+    }
+    
+    throw err;
+  }
+}
+
 export async function summarizeTranscript(transcript: string) {
   const prompt = `
     You are an expert content analyzer. Your task is to provide a comprehensive, structured summary of a video transcript.
@@ -55,11 +77,14 @@ export async function summarizeTranscript(transcript: string) {
   `;
 
   const response = await getNvidiaPool().run((key) =>
-    nvidiaClient(key).chat.completions.create({
-      model: "nvidia/llama-3.3-nemotron-super-49b-v1 ",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2,
-    })
+    withErrorLogging(
+      nvidiaClient(key).chat.completions.create({
+        model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+      }),
+      "summarizeTranscript"
+    )
   );
 
   const content = response.choices[0].message.content || "";
@@ -97,15 +122,18 @@ export async function chatWithTranscript(
   `;
 
   const response = await getNvidiaPool().run((key) =>
-    nvidiaClient(key).chat.completions.create({
-      model: "meta/llama-3.1-70b-instruct",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...history,
-        { role: "user", content: question },
-      ],
-      temperature: 0.1,
-    })
+    withErrorLogging(
+      nvidiaClient(key).chat.completions.create({
+        model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...history,
+          { role: "user", content: question },
+        ],
+        temperature: 0.1,
+      }),
+      "chatWithTranscript"
+    )
   );
 
   return response.choices[0].message.content;
@@ -167,11 +195,14 @@ Generate only the JSON array, no additional text or markdown.
 `;
 
   const response = await getNvidiaPool().run((key) =>
-    nvidiaClient(key).chat.completions.create({
-      model: "meta/llama-3.1-405b-instruct",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-    })
+    withErrorLogging(
+      nvidiaClient(key).chat.completions.create({
+        model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      }),
+      "generateQuiz"
+    )
   );
 
   const content = response.choices[0].message.content || "";
