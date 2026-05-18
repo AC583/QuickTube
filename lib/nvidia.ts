@@ -56,7 +56,7 @@ export async function summarizeTranscript(transcript: string) {
 
   const response = await getNvidiaPool().run((key) =>
     nvidiaClient(key).chat.completions.create({
-      model: "meta/llama-3.1-405b-instruct",
+      model: "nvidia/llama-3.3-nemotron-super-49b-v1 ",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
     })
