@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuiz } from "@/lib/nvidia";
 import { prisma } from "@/lib/prisma";
+import { getClientIP, checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const clientIP = getClientIP(req);
+  if (!checkRateLimit(clientIP, 5)) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   try {
     const { videoId } = await req.json();
 

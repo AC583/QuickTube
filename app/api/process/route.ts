@@ -3,10 +3,19 @@ import { tasks } from "@trigger.dev/sdk/v3";
 import { getVideoMetadata } from "@/lib/youtube";
 import { prisma } from "@/lib/prisma";
 import type { processVideoTask } from "@/trigger/process-video";
+import { getClientIP, checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
+  const clientIP = getClientIP(req);
+  if (!checkRateLimit(clientIP, 10)) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   try {
     const { url } = await req.json();
 

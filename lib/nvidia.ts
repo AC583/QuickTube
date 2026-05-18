@@ -2,6 +2,29 @@ import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { KeyPool } from "./key-pool";
 
+const MAX_INPUT_LENGTH = 2000;
+const MAX_TRANSCRIPT_LENGTH = 100000;
+
+function sanitizeInput(input: string): string {
+  if (!input || typeof input !== "string") return "";
+  return input
+    .replace(/[\x00-\x1F\x7F]/g, "")
+    .replace(/===/g, "=--")
+    .replace(/\[\[|\]\]/g, "")
+    .replace(/\\\\/g, "\\")
+    .slice(0, MAX_INPUT_LENGTH)
+    .trim();
+}
+
+function validateTranscriptLength(transcript: string): void {
+  if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+    throw new Error(`Transcript too long (${transcript.length} chars). Max: ${MAX_TRANSCRIPT_LENGTH}`);
+  }
+  if (transcript.length < 10) {
+    throw new Error("Transcript too short to process");
+  }
+}
+
 // Set NVIDIA_API_KEYS="key1,key2,key3" in .env (falls back to single key)
 function getNvidiaPool() {
   return KeyPool.fromEnv(
@@ -36,6 +59,8 @@ async function withErrorLogging<T>(promise: Promise<T>, context: string): Promis
 }
 
 export async function summarizeTranscript(transcript: string) {
+  validateTranscriptLength(transcript);
+
   const prompt = `
     You are an expert content analyzer. Your task is to provide a comprehensive, structured summary of a video transcript.
 
@@ -110,6 +135,9 @@ export async function chatWithTranscript(
   question: string,
   history: ChatCompletionMessageParam[] = []
 ) {
+  validateTranscriptLength(transcript);
+  const sanitizedQuestion = sanitizeInput(question);
+
   const systemPrompt = `
     You are a helpful assistant answering questions about a video.
     Base your answers STRICTLY on the provided transcript.
@@ -128,7 +156,7 @@ export async function chatWithTranscript(
         messages: [
           { role: "system", content: systemPrompt },
           ...history,
-          { role: "user", content: question },
+          { role: "user", content: sanitizedQuestion },
         ],
         temperature: 0.1,
       }),
@@ -149,6 +177,8 @@ export interface QuizQuestion {
 }
 
 export async function generateQuiz(transcript: string): Promise<QuizQuestion[]> {
+  validateTranscriptLength(transcript);
+
   const prompt = `
 You are an expert at creating educational quizzes. Your task is to generate quiz questions based on a video transcript.
 
