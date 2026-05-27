@@ -25,8 +25,17 @@ export function VideoInput() {
         headers: { "Content-Type": "application/json" },
       });
 
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        throw new Error(
+          res.ok
+            ? "Server returned an unexpected response. Restart the dev server and try again."
+            : `Server error (${res.status}). Restart the dev server after running: pnpm exec prisma generate`
+        );
+      }
+
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error) throw new Error(data.error ?? "Failed to process video");
 
       router.push(`/video/${data.videoId}`);
     } catch (err: any) {
