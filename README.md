@@ -2,7 +2,7 @@
 
 AI-Powered YouTube Video Analysis & Summarization
 
-https://www.youtube.com/watch?v=MIvvsqJAYh0
+https://youtube-summarizer-six-alpha.vercel.app/
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev)
