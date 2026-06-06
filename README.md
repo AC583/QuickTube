@@ -2,6 +2,8 @@
 
 AI-Powered YouTube Video Analysis & Summarization
 
+https://www.youtube.com/watch?v=MIvvsqJAYh0
+
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)](https://www.typescriptlang.org)
