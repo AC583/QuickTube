@@ -44,16 +44,16 @@ async function withErrorLogging<T>(promise: Promise<T>, context: string): Promis
     const status = error?.status || error?.statusCode;
     const message = error?.message || String(err);
     const response = error?.response;
-    
+
     console.error(`[NVIDIA API Error] ${context}`);
     console.error(`  Status: ${status}`);
     console.error(`  Message: ${message}`);
     console.error(`  Response body: ${response?.data ? JSON.stringify(response.data) : 'N/A'}`);
-    
+
     if (status === 404) {
       console.error(`  ⚠️ 404 Error: Model may be unavailable. Check NVIDIA NIM catalog for available models.`);
     }
-    
+
     throw err;
   }
 }
@@ -104,7 +104,7 @@ export async function summarizeTranscript(transcript: string) {
   const response = await getNvidiaPool().run((key) =>
     withErrorLogging(
       nvidiaClient(key).chat.completions.create({
-        model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+        model: "google/gemma-4-31b-it",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.2,
       }),
@@ -152,7 +152,7 @@ export async function chatWithTranscript(
   const response = await getNvidiaPool().run((key) =>
     withErrorLogging(
       nvidiaClient(key).chat.completions.create({
-        model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+        model: "google/gemma-4-31b-it",
         messages: [
           { role: "system", content: systemPrompt },
           ...history,
@@ -227,7 +227,7 @@ Generate only the JSON array, no additional text or markdown.
   const response = await getNvidiaPool().run((key) =>
     withErrorLogging(
       nvidiaClient(key).chat.completions.create({
-        model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+        model: "google/gemma-4-31b-it",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
       }),
